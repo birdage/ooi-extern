@@ -1,4 +1,15 @@
 ooi-extern
 ==========
 
-Test, OOI Extern 
+POSTGRES setup
+
+## macosx
+
+multicorn
+
+
+virtenv
+
+
+
+# macosx buildout
