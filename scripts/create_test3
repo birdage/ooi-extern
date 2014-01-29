@@ -1,0 +1,7 @@
+CREATE or replace FUNCTION sysver ()
+  RETURNS text
+AS $$
+  import sys
+  print sys.version
+  return sys.version
+$$ LANGUAGE plpythonu;
