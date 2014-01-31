@@ -58,45 +58,71 @@ kinda looks like this
 
 ## centos 6.3 install (tested as a VM)
 
-```
-sudo yum -y update
-```
+## create virtual env
 
-```
-vi /etc/sysconfig/selinux
-```
-Set 
-```
-SELINUX=disabled
-```
+### install python 2.7.3 from source to venv
 
-sudo reboot
+### install postgres from source using python 2.7.3 to venv
 
-```
-sudo vi /etc/sysconfig/iptables
-```
-Add the following lines:
-```
--A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT
--A INPUT -m state --state NEW -m tcp -p tcp --dport 5432 -j ACCEPT
--A INPUT -m state --state NEW -m tcp -p tcp --dport 8000 -j ACCEPT
--A INPUT -m state --state NEW -m tcp -p tcp --dport 8080 -j ACCEPT
-```
+### install additional postgis libs
 
-```
-sudo service iptables restart
-```
-
-Install Python 2.7.3
-```
-yum -y groupinstall "Development tools"
-yum -y install zlib-devel
-yum -y install bzip2-devel
-yum -y install openssl-devel
-yum -y install ncurses-devel
-```
+### pull down ooi exten git repo
 
 
+## setting up coverage data tables
+
+* Create the extension
+```
+CREATE EXTENSION multicorn
+```
+
+* create the server using the FDW
+``` 
+CREATE SERVER cov_srv foreign data wrapper multicorn options (
+    wrapper 'multicorn.covfdw.CovFdw'
+);
+```
+
+* create the foreign data table with the path to the dataset
+```
+  drop foreign table covtest;
+
+  create foreign table covtest (
+       dataset_id character varying,
+       time timestamp,
+       cond real,
+       temp real,
+       lat real,
+       lon real,
+       "geom" geometry(Point,4326)      
+) server cov_srv options (k '1',cov_path '/path/to/dataset/44afbd5858c44a8494f171d15e76d0ab');
+```
+
+* you can add this to a postgres function as follows
+``` sql
+CREATE OR REPLACE FUNCTION runCovTest() returns text as $$
+  drop foreign table covtest;
+  
+  create foreign table covtest (
+       dataset_id character varying,
+       time timestamp,
+       cond real,
+       temp real,
+       lat real,
+       lon real,
+       "geom" geometry(Point,4326)        
+) server cov_srv options (k '1',cov_path '/path/to/datasets/44afbd5858c44a8494f171d15e76d0ab');
+
+$$ LANGUAGE SQL ;
+```
+
+* because the srid is fixed geom can be overridden using postgres mk_point, to caluclate the SRID from the lat,lon of a coverage by generating a postgres view as follows.
+```
+CREATE or replace VIEW covproj as 
+SELECT ST_SetSRID(ST_MakePoint(lon, lat),4326) as proj, dataset_id, time, cond, temp from covtest;
+```
+
+* notice that the server is called cov_src, and the data table is called cov_test and the projection is called covproj.
 
 
 
