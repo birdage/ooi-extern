@@ -6,4 +6,4 @@ create foreign table covtest (
        lat character varying,
        lon character varying,
 	"geom" geometry(Point,4326)		
-) server cov_srv options (k '1');
+) server cov_srv options (k '1',cov_path '/tmp/ion/ion_test_9615be/cache/datasets/44afbd5858c44a8494f171d15e76d0ab');

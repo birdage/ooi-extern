@@ -22,7 +22,6 @@ downloads/
 bin/
 .installed.cfg
 .idea
-buildout.cfg
 .idea
 msc.*
 reslocal/config/pyon.local.yml
