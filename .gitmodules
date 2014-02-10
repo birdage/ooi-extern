@@ -10,3 +10,6 @@
 [submodule "extern/multicorn"]
 	path = extern/multicorn
 	url = https://github.com/birdage/Multicorn.git
+[submodule "extern/gsconfig"]
+	path = extern/gsconfig
+	url = https://github.com/birdage/gsconfig.git

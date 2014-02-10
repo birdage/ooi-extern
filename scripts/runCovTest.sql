@@ -9,7 +9,9 @@ CREATE OR REPLACE FUNCTION runCovTest() returns text as $$
        lat real,
        lon real,
        "geom" geometry(Point,4326)        
-) server cov_srv options (k '1',cov_path '/tmp/ion/ion_test_9615be/cache/datasets/44afbd5858c44a8494f171d15e76d0ab');
+) server cov_srv options (k '1',
+cov_path '/Users/rpsdev/ooi_test_data/63169092-1FCD-4681-8E15-5320098DE1E4',
+time_field 'time');
 
 	select test3();
 
