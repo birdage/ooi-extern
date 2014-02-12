@@ -1,6 +1,21 @@
 ooi-extern
 ==========
 
+## Using the service
+
+importer service allows the modification (add,remove) of geoserver data layers from ooi coverages
+
+run ```bin/ipython```
+
+enter ```import importerService```
+
+enter ```importerService.startup()```
+
+the service will tell you which port it is on. you can simply then pass a query to the service eg.
+
+http://localhost:8844/service=addlayer&name="DATASET_ID"&id="DATASET_ID"
+http://localhost:8844/service=resetstore&name=ooi&id=ooi
+
 ## macosx
 
 install postgres to a virtual env named "postgres"
