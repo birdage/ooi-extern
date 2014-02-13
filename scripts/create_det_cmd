@@ -1,0 +1,6 @@
+CREATE OR REPLACE FUNCTION getForeignTables() returns text as $$
+
+	select * from \det;
+
+
+$$ LANGUAGE SQL ;
