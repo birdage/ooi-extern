@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """WSGI geoserver layer server """
-from __future__ import print_function
+#from __future__ import print_function
 from gevent.pywsgi import WSGIServer
 from geoserver.catalog import Catalog
 from geoserver.layer import Layer
@@ -54,15 +54,15 @@ def application(env, start_response):
             if (paramDict.has_key(KEY_SERVICE)):
                 if (paramDict[KEY_SERVICE] == ADDLAYER):
                 	if (paramDict.has_key(KEY_NAME) and paramDict.has_key(KEY_ID)):
-	                    print(ADDLAYER)
 	                    createLayer(paramDict[KEY_NAME], GEO_STORE, GEO_WS)
 
                 elif (paramDict[KEY_SERVICE] == REMOVELAYER):
                 	if (paramDict.has_key(KEY_NAME) and paramDict.has_key(KEY_ID)):
                 		removeLayer(paramDict[KEY_NAME], GEO_STORE, GEO_WS,cat)
-                    	print(REMOVELAYER)
 
                 elif (paramDict[KEY_SERVICE] == UPDATELAYER):
+                    removeLayer(paramDict[KEY_NAME], GEO_STORE, GEO_WS,cat)
+                    createLayer(paramDict[KEY_NAME], GEO_STORE, GEO_WS)
                     print(UPDATELAYER)
 
                 elif (paramDict[KEY_SERVICE] == RESETSTORE):
@@ -108,29 +108,63 @@ def resetDataStore(cat):
         #remove all the things if it has resources
         for d in geoStore.get_resources():
             layer = cat.get_layer(d.name)
-            #delete the layer
-            cat.delete(layer)
-            #delete the actual file
-            cat.delete(d)
+            if (layer):
+                #delete the layer
+                cat.delete(layer)
+                #delete the actual file
+                cat.delete(d)
+            else:
+                try:
+                    print("layer thinks it does not exist...remove")
+                    cat.delete(d)      
+                    pass
+                except Exception, e:
+                    print("issue getting/removing layer",str(e))
+                
 
         cat.save(geoStore)
         cat.delete(geoStore)
+    except Exception,e:
+        print("issue getting/removing datastore",str(e))
+
+    try:
+        if (cat.get_store(GEO_STORE)):
+            #store exists for some reason was not removed!?
+            print("using existing datastore")
+    except Exception, e:
+        print "create new"   
+        #store does not exist create it, the prefered outcome 
+        geoStore = cat.create_datastore(GEO_STORE, geoWs)
+        geoStore.capabilitiesURL = "http://www.geonode.org/"
+        geoStore.type = "PostGIS"
+        geoStore.connection_parameters = getGeoStoreParams()
+        #MUST SAVE IT!
+        cat.save(geoStore)
+
+def removeLayer(layer_name, store_name, workspace_name, cat):
+    print (REMOVELAYER)
+
+    geoWs = cat.get_workspace(GEO_WS)
+    try:
+        geoStore = cat.get_store(GEO_STORE)
+        #remove all the things if it has resources
+        layer = cat.get_layer(layer_name)
+        if (layer):
+            #delete the layer
+            cat.delete(layer)
+            #delete the actual file/resource
+            cat.delete(cat.get_resource(layer_name))
+            cat.save(geoStore)
+        #else:
+            #if the layer does not exist try deleting the resource
+        #    cat.delete(cat.get_resource(layer_name))
+        #    cat.save(geoStore)
+
     except Exception:
-        print("issue getting/removing datastore")
-
-    geoStore = cat.create_datastore(GEO_STORE, geoWs)
-    geoStore.capabilitiesURL = "http://www.geonode.org/"
-    geoStore.type = "PostGIS"
-    geoStore.connection_parameters = getGeoStoreParams()
-    #MUST SAVE IT!
-    cat.save(geoStore)
-
-
-def removeLayer(layer_name, store_name, workspace_name,cat):
-	print (REMOVELAYER)
+        print("issue getting/removing data layer/resource")
 
 def createLayer(layer_name, store_name, workspace_name):
-
+    print ADDLAYER
     xml = '''<?xml version='1.0' encoding='utf-8'?>
         <featureType>
 		  <name>%s</name>
