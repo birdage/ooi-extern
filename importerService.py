@@ -15,6 +15,7 @@ from geoserver.support import prepare_upload_bundle, url
 import httplib2
 import json
 import requests
+import ast
 
 __author__ = "abird"
 
@@ -32,6 +33,7 @@ GEO_STORE = "ooi"
 KEY_SERVICE = 'service'
 KEY_NAME = 'name'
 KEY_ID = 'id'
+PARAMS = 'params'
 
 
 def application(env, start_response):
@@ -54,7 +56,7 @@ def application(env, start_response):
             if (paramDict.has_key(KEY_SERVICE)):
                 if (paramDict[KEY_SERVICE] == ADDLAYER):
                 	if (paramDict.has_key(KEY_NAME) and paramDict.has_key(KEY_ID)):
-	                    createLayer(paramDict[KEY_NAME], GEO_STORE, GEO_WS)
+	                    createLayer(paramDict[KEY_NAME], GEO_STORE, GEO_WS,paramDict[PARAMS])
 
                 elif (paramDict[KEY_SERVICE] == REMOVELAYER):
                 	if (paramDict.has_key(KEY_NAME) and paramDict.has_key(KEY_ID)):
@@ -83,6 +85,7 @@ def getGeoStoreParams():
         'Estimated extends': 'true',
         'Expose primary keys': 'false',
         'Loose bbox': 'true',
+        'Session startup SQL': 'select runCovTest();\nselect 1 from covtest limit 1;',
         'Max open prepared statements': '50',
         'database': 'postgres',
         'dbtype': 'postgis',
@@ -163,7 +166,7 @@ def removeLayer(layer_name, store_name, workspace_name, cat):
     except Exception:
         print("issue getting/removing data layer/resource")
 
-def createLayer(layer_name, store_name, workspace_name):
+def createLayer(layer_name, store_name, workspace_name,params):
     print ADDLAYER
     xml = '''<?xml version='1.0' encoding='utf-8'?>
         <featureType>
@@ -197,9 +200,14 @@ def createLayer(layer_name, store_name, workspace_name):
 		    <entry key=\"cachingEnabled\">false</entry>
 		    <entry key=\"JDBC_VIRTUAL_TABLE\">
 		      <virtualTable>
-		        <name>geoserverlayer %s</name>
-		        <sql>select count(*)</sql>
+		        <name>layer %s</name>
+		        <sql>select * from "%s_view"</sql>
 		        <escapeSql>false</escapeSql>
+                <geometry>
+                <name>geom</name>
+                <type>Point</type>
+                <srid>4326</srid>
+                </geometry>
 		      </virtualTable>
 		    </entry>
 		  </metadata>
@@ -209,16 +217,23 @@ def createLayer(layer_name, store_name, workspace_name):
 		  </store>
 		  <maxFeatures>0</maxFeatures>
 		  <numDecimals>0</numDecimals>
-		  <attributes>
-		    <attribute>
-		      <name>count</name>
-		      <minOccurs>0</minOccurs>
-		      <maxOccurs>1</maxOccurs>
-		      <nillable>true</nillable>
-		      <binding>java.lang.Long</binding>
-		    </attribute>
-		  </attributes>
-		</featureType>'''% (layer_name, layer_name,workspace_name, layer_name ,store_name)
+		  '''% (layer_name, layer_name,workspace_name, layer_name , layer_name, store_name)
+          
+    xml += "<attributes>"
+
+    print "------------------\n"
+    params = ast.literal_eval(params)
+    print params
+    print (type(params))
+    print "------------------\n"
+
+    #add attribute list
+    for paramItem in params:
+        xml += addAttributes(paramItem,params[paramItem])
+
+    xml += "</attributes>"
+    xml += "</featureType>"
+	
 
     serverpath = SERVER + "/" + "workspaces" + "/" + GEO_WS + "/" + "datastores/"+GEO_STORE+"/featuretypes" 
     headers = {'Content-Type': 'application/xml'} # set what your server accepts
@@ -228,5 +243,32 @@ def createLayer(layer_name, store_name, workspace_name):
                      headers=headers,
                      auth=auth)
 
-    #print r.status_code
+    print r.status_code
+    print r.text
     pass
+
+def addAttributes(param,param_type):
+
+    attribute = "<attribute>"
+    attribute += "<name>"+param+"</name>"
+    attribute += "<minOccurs>0</minOccurs>"
+    attribute += "<maxOccurs>1</maxOccurs>"
+    attribute += "<nillable>true</nillable>"
+    
+    if param == "geom":
+        attribute += "<binding>com.vividsolutions.jts.geom.Point</binding>"
+    elif param_type == "float":
+        attribute += "<binding>java.lang.Float</binding>"
+    elif param_type == "real":
+        attribute += "<binding>java.lang.Float</binding>"  
+    elif param_type == "time":
+        attribute += "<binding>java.sql.Timestamp</binding>" 
+    elif param_type == "int":
+        attribute += "<binding>java.lang.Int</binding>"            
+    else:
+        attribute += "<binding>java.lang.Float</binding>"
+
+    attribute += "</attribute>"
+
+    return attribute
+

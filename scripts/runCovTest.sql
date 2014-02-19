@@ -1,5 +1,5 @@
 CREATE OR REPLACE FUNCTION runCovTest() returns text as $$
-	drop foreign table covtest;
+	drop foreign table if exists covtest cascade;
 	
 	create foreign table covtest (
        dataset_id character varying,
@@ -7,10 +7,9 @@ CREATE OR REPLACE FUNCTION runCovTest() returns text as $$
        cond real,
        temp real,
        lat real,
-       lon real,
-       "geom" geometry(Point,4326)        
+       lon real    
 ) server cov_srv options (k '1',
-cov_path '/Users/rpsdev/ooi_test_data/63169092-1FCD-4681-8E15-5320098DE1E4',
+cov_path '',
 time_field 'time');
 
 	select test3();
