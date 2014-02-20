@@ -168,10 +168,11 @@ def removeLayer(layer_name, store_name, workspace_name, cat):
 
 def createLayer(layer_name, store_name, workspace_name,params):
     print ADDLAYER
+
     xml = '''<?xml version='1.0' encoding='utf-8'?>
         <featureType>
 		  <name>%s</name>
-		  <nativeName>%s</nativeName>
+		  <nativeName>layer_%s</nativeName>
 		  <namespace>
 		    <name>%s</name>
 		    <atom:link xmlns:atom="http://www.w3.org/2005/Atom\" rel=\"alternate\" href=\"http://localhost:8080/geoserver/rest/namespaces/geonode.xml\" type=\"application/xml\"/>
@@ -183,25 +184,38 @@ def createLayer(layer_name, store_name, workspace_name,params):
 		  </keywords>
 		  <srs>EPSG:4326</srs>
 		  <nativeBoundingBox>
-		    <minx>-1.0</minx>
-		    <maxx>0.0</maxx>
-		    <miny>-1.0</miny>
-		    <maxy>0.0</maxy>
+		    <minx>-180</minx>
+            <maxx>180</maxx>
+            <miny>-90.0</miny>
+            <maxy>90.0</maxy>
 		  </nativeBoundingBox>
 		  <latLonBoundingBox>
-		    <minx>-1.0</minx>
-		    <maxx>0.0</maxx>
-		    <miny>-1.0</miny>
-		    <maxy>0.0</maxy>
+		    <minx>-180</minx>
+            <maxx>180</maxx>
+            <miny>-90.0</miny>
+            <maxy>90.0</maxy>
 		  </latLonBoundingBox>
 		  <projectionPolicy>FORCE_DECLARED</projectionPolicy>
 		  <enabled>true</enabled>
 		  <metadata>
+            <entry key="time">
+                <dimensionInfo>
+                    <enabled>true</enabled>
+                    <attribute>time</attribute>
+                    <presentation>LIST</presentation>
+                    <units>ISO8601</units>
+                </dimensionInfo>
+            </entry>
+            <entry key="elevation">
+                <dimensionInfo>
+                <enabled>false</enabled>
+                </dimensionInfo>
+            </entry>
 		    <entry key=\"cachingEnabled\">false</entry>
 		    <entry key=\"JDBC_VIRTUAL_TABLE\">
 		      <virtualTable>
-		        <name>layer %s</name>
-		        <sql>select * from "%s_view"</sql>
+		        <name>layer_%s</name>
+		        <sql>select * from _%s_view</sql>
 		        <escapeSql>false</escapeSql>
                 <geometry>
                 <name>geom</name>
@@ -223,8 +237,9 @@ def createLayer(layer_name, store_name, workspace_name,params):
 
     print "------------------\n"
     params = ast.literal_eval(params)
+    #add point geom
+    params['geom'] = "geom"
     print params
-    print (type(params))
     print "------------------\n"
 
     #add attribute list
@@ -234,7 +249,7 @@ def createLayer(layer_name, store_name, workspace_name,params):
     xml += "</attributes>"
     xml += "</featureType>"
 	
-
+    #generate layer
     serverpath = SERVER + "/" + "workspaces" + "/" + GEO_WS + "/" + "datastores/"+GEO_STORE+"/featuretypes" 
     headers = {'Content-Type': 'application/xml'} # set what your server accepts
     auth=(U_NAME, P_WD)
@@ -243,8 +258,30 @@ def createLayer(layer_name, store_name, workspace_name,params):
                      headers=headers,
                      auth=auth)
 
-    print r.status_code
-    print r.text
+    print "statusCode",r.status_code
+    #print r.text
+
+    #append query 
+    serverpath = SERVER+"/layers/"+layer_name+'.xml'
+    r = requests.get(serverpath,
+                 headers=headers,
+                 auth=auth)
+
+    #get the existing layer
+    print "statusCode",r.status_code
+    xml = r.text
+    findString = ('</resource>')
+    val= xml.find(findString)
+    xmlPart1 = xml[:val+len(findString)]
+    xmlAgg = xmlPart1+"\n<queryable>true</queryable>"+xml[val+len(findString):]
+    #print "-----------"
+    #print xmlAgg
+    r = requests.put(serverpath,
+                     data=xmlAgg, 
+                     headers=headers,
+                     auth=auth)
+
+    print "statusCode",r.status_code
     pass
 
 def addAttributes(param,param_type):
