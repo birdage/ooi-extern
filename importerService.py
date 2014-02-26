@@ -23,6 +23,7 @@ ADDLAYER = "addlayer"
 REMOVELAYER = "removelayer"
 UPDATELAYER = "updatelayer"
 RESETSTORE = "resetstore"
+LISTLAYERS = "listlayers"
 
 GEO_WS = "geonode"
 SERVER = "http://localhost:8080/geoserver/rest"
@@ -36,15 +37,18 @@ KEY_ID = 'id'
 PARAMS = 'params'
 
 
+
 def application(env, start_response):
     request = env['PATH_INFO']
     request = request[1:]
     cat = Catalog(SERVER, U_NAME, P_WD)
+    output = ''
 
     if request == '/':
         start_response('404 Not Found', [('Content-Type', 'text/html')])
         return ["<h1>Error<b>please add request information</b>"]
     else:
+
         req = request.split("&")
         paramDict = {}
         if len(req) > 1:
@@ -67,11 +71,18 @@ def application(env, start_response):
                     createLayer(paramDict[KEY_NAME], GEO_STORE, GEO_WS)
                     print(UPDATELAYER)
 
+                elif (paramDict[KEY_SERVICE] == LISTLAYERS):
+                    layerListRet = getLayerList(cat)
+                    print(UPDATELAYER)
+                    print(layerListRet)
+                    output = ''.join(layerListRet)
+                    print output
+
                 elif (paramDict[KEY_SERVICE] == RESETSTORE):
                    resetDataStore(cat)
 
     start_response('200 OK', [('Content-Type', 'text/html')])
-    return ['<b>' + request + '</b>']
+    return ['<b>' + request + '<br>'+ output +'</b>']
 
 
 def startup():
@@ -102,6 +113,23 @@ def getGeoStoreParams():
         'validate connections': 'true'
     }
     return params
+
+def getLayerList(cat):
+    layerList = []
+    layerList.append('List Of DataLayers')
+    layerList.append('<br>')
+    layerList.append('<br>')
+    geoWs = cat.get_workspace(GEO_WS)
+    try:
+        geoStore = cat.get_store(GEO_STORE)
+        for d in geoStore.get_resources():
+            layerList.append(d.name)
+            layerList.append('<br>')
+    except Exception,e:
+        print("issue getting layers",str(e))
+
+    return layerList    
+
 
 def resetDataStore(cat):
     print(RESETSTORE)
