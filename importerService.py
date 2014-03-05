@@ -43,7 +43,7 @@ def application(env, start_response):
     request = request[1:]
     cat = Catalog(SERVER, U_NAME, P_WD)
     output = ''
-
+    
     if request == '/':
         start_response('404 Not Found', [('Content-Type', 'text/html')])
         return ["<h1>Error<b>please add request information</b>"]
@@ -68,7 +68,7 @@ def application(env, start_response):
 
                 elif (paramDict[KEY_SERVICE] == UPDATELAYER):
                     removeLayer(paramDict[KEY_NAME], GEO_STORE, GEO_WS,cat)
-                    createLayer(paramDict[KEY_NAME], GEO_STORE, GEO_WS)
+                    createLayer(paramDict[KEY_NAME], GEO_STORE, GEO_WS,paramDict[PARAMS])
                     print(UPDATELAYER)
 
                 elif (paramDict[KEY_SERVICE] == LISTLAYERS):
@@ -288,7 +288,7 @@ def createLayer(layer_name, store_name, workspace_name,params):
 
     print "statusCode",r.status_code
     #print r.text
-
+    layer_name = "ooi_"+layer_name+"_ooi"
     #append query 
     serverpath = SERVER+"/layers/"+layer_name+'.xml'
     r = requests.get(serverpath,
@@ -296,7 +296,7 @@ def createLayer(layer_name, store_name, workspace_name,params):
                  auth=auth)
 
     #get the existing layer
-    print "statusCode",r.status_code
+    print "statusCode: getLayer:",r.status_code
     xml = r.text
     findString = ('</resource>')
     val= xml.find(findString)
@@ -309,7 +309,7 @@ def createLayer(layer_name, store_name, workspace_name,params):
                      headers=headers,
                      auth=auth)
 
-    print "statusCode",r.status_code
+    print "statusCode: updateLayer:",r.status_code
     pass
 
 def addAttributes(param,param_type):
