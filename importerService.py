@@ -21,7 +21,7 @@ __author__ = "abird"
 
 ADDLAYER = "addlayer"
 REMOVELAYER = "removelayer"
-UPDATELAYER = "updatelayer":
+UPDATELAYER = "updatelayer"
 RESETSTORE = "resetstore"
 LISTLAYERS = "listlayers"
 
