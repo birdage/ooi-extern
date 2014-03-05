@@ -21,7 +21,7 @@ __author__ = "abird"
 
 ADDLAYER = "addlayer"
 REMOVELAYER = "removelayer"
-UPDATELAYER = "updatelayer"
+UPDATELAYER = "updatelayer":
 RESETSTORE = "resetstore"
 LISTLAYERS = "listlayers"
 
@@ -199,7 +199,7 @@ def createLayer(layer_name, store_name, workspace_name,params):
 
     xml = '''<?xml version='1.0' encoding='utf-8'?>
         <featureType>
-		  <name>%s</name>
+		  <name>ooi_%s_ooi</name>
 		  <nativeName>layer_%s</nativeName>
 		  <namespace>
 		    <name>%s</name>
