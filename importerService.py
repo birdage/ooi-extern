@@ -38,7 +38,7 @@ class resource_importer():
         self.startup()
 
     def startup(self):
-        f = open('eoi.yaml')
+        f = open('eoi.yml')
         # use safe_load instead load
         dataMap = yaml.safe_load(f)
         f.close()
