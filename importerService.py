@@ -25,6 +25,7 @@ REMOVELAYER = "removelayer"
 UPDATELAYER = "updatelayer"
 RESETSTORE = "resetstore"
 LISTLAYERS = "listlayers"
+ALIVE = "alive"
 
 KEY_SERVICE = 'service'
 KEY_NAME = 'name'
@@ -86,7 +87,10 @@ class resource_importer():
 
                 #parse request
                 if (paramDict.has_key(KEY_SERVICE)):
-                    if (paramDict[KEY_SERVICE] == ADDLAYER):
+                    if (paramDict[KEY_SERVICE] == ALIVE):
+                         start_response('200 ok', [('Content-Type', 'text/html')])
+                         return ['<b>ALIVE<BR>' + request + '<br>'+ output +'</b>']
+                    elif (paramDict[KEY_SERVICE] == ADDLAYER):
                         if (paramDict.has_key(KEY_NAME) and paramDict.has_key(KEY_ID)):
                             if paramDict.has_key(PARAMS):
                                 self.createLayer(paramDict[KEY_NAME], self.GEO_STORE, self.GEO_WS,paramDict[PARAMS])
