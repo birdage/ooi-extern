@@ -312,9 +312,6 @@ class resource_importer():
         headers = {'Content-Type': 'application/xml'} # set what your server accepts
         auth = (str(self.U_NAME), str(self.P_WD))
 
-        print "path:",serverpath
-        print auth
-
         r = requests.post(serverpath,
                          data=xml, 
                          headers=headers,
