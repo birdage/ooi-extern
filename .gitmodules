@@ -13,3 +13,6 @@
 [submodule "extern/gsconfig"]
 	path = extern/gsconfig
 	url = https://github.com/birdage/gsconfig.git
+[submodule "extern/ion-definitions"]
+	path = extern/ion-definitions
+	url = git@github.com:ooici/ion-definitions.git
