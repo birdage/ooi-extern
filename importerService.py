@@ -48,7 +48,8 @@ class resource_importer():
         self.P_WD = dataMap['eoi']['geoserver']['password']
         self.PORT = dataMap['eoi']['importer_service']['port']
         self.GEO_STORE = dataMap['eoi']['geoserver']['geoserver_ooi_store']
-        self.SESSION_START_UP = dataMap['eoi']['importer_service']['session_startup']
+        self.SESSION_START_UP_ln1 = dataMap['eoi']['postgres']['session_startup_ln1']
+        self.SESSION_START_UP_ln2 = dataMap['eoi']['postgres']['session_startup_ln2']
         
         self.POSTGRES_USER = dataMap['eoi']['postgres']['user_name']
         self.POSTGRES_PASSWORD = dataMap['eoi']['postgres']['password']
@@ -87,7 +88,14 @@ class resource_importer():
                 if (paramDict.has_key(KEY_SERVICE)):
                     if (paramDict[KEY_SERVICE] == ADDLAYER):
                         if (paramDict.has_key(KEY_NAME) and paramDict.has_key(KEY_ID)):
-                            self.createLayer(paramDict[KEY_NAME], self.GEO_STORE, self.GEO_WS,paramDict[PARAMS])
+                            if paramDict.has_key(PARAMS):
+                                self.createLayer(paramDict[KEY_NAME], self.GEO_STORE, self.GEO_WS,paramDict[PARAMS])
+                            else:
+                                start_response('400 Bad Request', [('Content-Type', 'text/html')])
+                                return ['<b>ERROR NO PARAMS<BR>' + request + '<br>'+ output +'</b>']    
+                        else:
+                            start_response('400 Bad Request', [('Content-Type', 'text/html')])
+                            return ['<b>ERROR NO ID or NAME<BR>' + request + '<br>'+ output +'</b>']    
 
                     elif (paramDict[KEY_SERVICE] == REMOVELAYER):
                         if (paramDict.has_key(KEY_NAME) and paramDict.has_key(KEY_ID)):
@@ -113,14 +121,13 @@ class resource_importer():
 
 
     def getGeoStoreParams(self,):
-        #'Session startup SQL': 'select runCovTest();\nselect 1 from covtest limit 1;',
-
+        #rpsdev = 'Session startup SQL': 'select runCovTest();\nselect 1 from covtest limit 1;',
         params = {
             'Connection timeout': '20',
             'Estimated extends': 'true',
             'Expose primary keys': 'false',
             'Loose bbox': 'true', 
-            'Session startup SQL': str(self.SESSION_START_UP),
+            'Session startup SQL': self.SESSION_START_UP_ln1+'\n'+self.SESSION_START_UP_ln2,
             'Max open prepared statements': '50',
             'database': str(self.POSTGRES_DB),
             'dbtype': 'postgis',
@@ -221,7 +228,6 @@ class resource_importer():
 
     def createLayer(self,layer_name, store_name, workspace_name,params):
         print ADDLAYER
-
         xml = '''<?xml version='1.0' encoding='utf-8'?>
             <featureType>
     		  <name>%s%s%s</name>
@@ -301,17 +307,21 @@ class resource_importer():
 
         xml += "</attributes>"
         xml += "</featureType>"
-    	
         #generate layer
-        serverpath = self.SERVER + "/" + "workspaces" + "/" + self.GEO_WS + "/" + "datastores/"+self.GEO_STORE+"/featuretypes" 
+        serverpath = str(self.SERVER) + "/" + "workspaces" + "/" + self.GEO_WS + "/" + "datastores/"+self.GEO_STORE+"/featuretypes" 
         headers = {'Content-Type': 'application/xml'} # set what your server accepts
-        auth=(self.U_NAME, self.P_WD)
+        auth = (str(self.U_NAME), str(self.P_WD))
+
+        print "path:",serverpath
+        print auth
+
         r = requests.post(serverpath,
                          data=xml, 
                          headers=headers,
                          auth=auth)
 
         print "statusCode",r.status_code
+
         #print r.text
         layer_name = self.LAYER_PREFIX+layer_name+self.LAYER_SUFFIX
         #append query 
@@ -322,19 +332,22 @@ class resource_importer():
 
         #get the existing layer
         print "statusCode: getLayer:",r.status_code
-        xml = r.text
-        findString = ('</resource>')
-        val= xml.find(findString)
-        xmlPart1 = xml[:val+len(findString)]
-        xmlAgg = xmlPart1+"\n<queryable>true</queryable>"+xml[val+len(findString):]
-        #print "-----------"
-        #print xmlAgg
-        r = requests.put(serverpath,
-                         data=xmlAgg, 
-                         headers=headers,
-                         auth=auth)
+        if (r.status_code==200):
+            xml = r.text
+            findString = ('</resource>')
+            val= xml.find(findString)
+            xmlPart1 = xml[:val+len(findString)]
+            xmlAgg = xmlPart1+"\n<queryable>true</queryable>"+xml[val+len(findString):]
+            #print "-----------"
+            #print xmlAgg
+            r = requests.put(serverpath,
+                             data=xmlAgg, 
+                             headers=headers,
+                             auth=auth)
 
-        print "statusCode: updateLayer:",r.status_code
+            print "statusCode: updateLayer:",r.status_code
+        else:
+            print "could not get layer, check it exists... "+r.text    
         pass
 
     def addAttributes(self,param,param_type):

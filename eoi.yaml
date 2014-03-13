@@ -22,7 +22,8 @@ eoi:
         port: 5432
         table_prefix: _
         table_suffix: _view
-        session_startup: SELECT appendPath()
+        session_startup_ln1: select runCovTest();
+        session_startup_ln2: select 1 from covtest limit 1;
 #importer service for geoserver        
     importer_service:
         server: http://localhost
@@ -30,7 +31,6 @@ eoi:
         add_layer: addlayer
         remove_layer: removelayer
         reset_store: resetstore
-        session_startup: select runCovTest();\nselect 1 from covtest limit 1;
 #coverageFDWSever        
     fdw:
         server: cov_srv
