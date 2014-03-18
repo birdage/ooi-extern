@@ -39,7 +39,7 @@ class resource_importer():
         self.startup()
 
     def startup(self):
-        f = open('./extern/ion-definitions/res/config/eoi.yml')
+        f = open('./extern/ion-definitions/res/config/pyon.yml')
         # use safe_load instead load
         dataMap = yaml.safe_load(f)
         f.close()
