@@ -1,6 +1,7 @@
 #!/usr/bin/python
-"""WSGI geoserver layer server """
-#from __future__ import print_function
+"""
+WSGI geoserver layer server 
+"""
 from gevent.pywsgi import WSGIServer
 from geoserver.catalog import Catalog
 from geoserver.layer import Layer
@@ -17,6 +18,7 @@ import json
 import requests
 import ast
 import yaml
+from pyon.util.log import log
 
 from pyon.core import config, bootstrap
 
@@ -38,11 +40,11 @@ PARAMS = 'params'
 class resource_importer():
     def __init__(self):
         pyon_config = config.read_standard_configuration()      # Initial pyon.yml + pyon.local.yml
-        print "Setting up geoserver importer service..."
+        log.info("Setting up geoserver importer service...")
         self.startup()
 
     def startup(self):
-
+        
         ion_config = config.read_standard_configuration()
         self.GEO_WS = ion_config['eoi']['geoserver']['geoserver_ooi_workspace']
         self.SERVER = ion_config['eoi']['geoserver']['server']+"/geoserver/rest"
@@ -63,9 +65,7 @@ class resource_importer():
         self.LAYER_PREFIX = ion_config['eoi']['geoserver']['layer_prefix']
         self.LAYER_SUFFIX = ion_config['eoi']['geoserver']['layer_suffix']
 
-       
-
-        print('Serving on '+str(self.PORT)+'...')
+        log.info('Serving on '+str(self.PORT)+'...')
         server = WSGIServer(('', self.PORT), self.application).serve_forever()
 
     def application(self,env, start_response):
@@ -109,14 +109,14 @@ class resource_importer():
                     elif (paramDict[KEY_SERVICE] == UPDATELAYER):
                         self.removeLayer(paramDict[KEY_NAME], self.GEO_STORE, self.GEO_WS,cat)
                         self.createLayer(paramDict[KEY_NAME], self.GEO_STORE, self.GEO_WS,paramDict[PARAMS])
-                        print(UPDATELAYER)
+                        log.info(UPDATELAYER)
 
                     elif (paramDict[KEY_SERVICE] == LISTLAYERS):
                         layerListRet = self.getLayerList(cat)
-                        print(UPDATELAYER)
-                        print(layerListRet)
+                        log.info(UPDATELAYER)
+                        log.info(layerListRet)
                         output = ''.join(layerListRet)
-                        print output
+                        log.info(output)
 
                     elif (paramDict[KEY_SERVICE] == RESETSTORE):
                        self.resetDataStore(cat)
@@ -168,13 +168,13 @@ class resource_importer():
                 layerList.append(d.name)
                 layerList.append('<br>')
         except Exception,e:
-            print("issue getting layers",str(e))
+            log.info("issue getting layers:"+str(e))
 
         return layerList    
 
 
     def resetDataStore(self,cat):
-        print(RESETSTORE)
+        log.info(RESETSTORE)
         geoWs = cat.get_workspace(self.GEO_WS)
         try:
             geoStore = cat.get_store(self.GEO_STORE)
@@ -188,24 +188,24 @@ class resource_importer():
                     cat.delete(d)
                 else:
                     try:
-                        print("layer thinks it does not exist...remove")
+                        log.info("layer thinks it does not exist...remove")
                         cat.delete(d)      
                         pass
                     except Exception, e:
-                        print("issue getting/removing layer",str(e))
+                        log.info("issue getting/removing layer:"+str(e))
                     
 
             cat.save(geoStore)
             cat.delete(geoStore)
         except Exception,e:
-            print("issue getting/removing datastore",str(e))
+            log.info("issue getting/removing datastore:"+str(e))
 
         try:
             if (cat.get_store(self.GEO_STORE)):
                 #store exists for some reason was not removed!?
-                print("using existing datastore")
+                log.info("using existing datastore")
         except Exception, e:
-            print "create new"   
+            log.info("create new")
             #store does not exist create it, the prefered outcome 
             geoStore = cat.create_datastore(self.GEO_STORE, geoWs)
             geoStore.capabilitiesURL = "http://www.geonode.org/"
@@ -213,10 +213,10 @@ class resource_importer():
             geoStore.connection_parameters = self.getGeoStoreParams()
             #MUST SAVE IT!
             info = cat.save(geoStore)
-            print info[0]['status']+" store created..."
+            log.info(info[0]['status']+" store created...")
 
     def removeLayer(self,layer_name, store_name, workspace_name, cat):
-        print (REMOVELAYER)
+        log.info (REMOVELAYER)
 
         geoWs = cat.get_workspace(self.GEO_WS)
         try:
@@ -235,10 +235,10 @@ class resource_importer():
             #    cat.save(geoStore)
 
         except Exception:
-            print("issue getting/removing data layer/resource")
+            log.info("issue getting/removing data layer/resource")
 
     def createLayer(self,layer_name, store_name, workspace_name,params):
-        print ADDLAYER
+        log.info(ADDLAYER)
         xml = '''<?xml version='1.0' encoding='utf-8'?>
             <featureType>
     		  <name>%s%s%s</name>
@@ -305,12 +305,12 @@ class resource_importer():
               
         xml += "<attributes>"
 
-        print "------------------\n"
+        #log.info("------------------\n")
         params = ast.literal_eval(params)
         #add point geom
         params['geom'] = "geom"
-        print params
-        print "------------------\n"
+        log.info (params)
+        #log.info("------------------\n")
 
         #add attribute list
         for paramItem in params:
@@ -328,9 +328,9 @@ class resource_importer():
                          headers=headers,
                          auth=auth)
 
-        print "statusCode",r.status_code
+        log.info("statusCode:"+str(r.status_code))
 
-        #print r.text
+        #log.info r.text
         layer_name = self.LAYER_PREFIX+layer_name+self.LAYER_SUFFIX
         #append query 
         serverpath = self.SERVER+"/layers/"+layer_name+'.xml'
@@ -339,23 +339,23 @@ class resource_importer():
                      auth=auth)
 
         #get the existing layer
-        print "statusCode: getLayer:",r.status_code
+        log.info("statusCode: getLayer:"+str(r.status_code))
         if (r.status_code==200):
             xml = r.text
             findString = ('</resource>')
             val= xml.find(findString)
             xmlPart1 = xml[:val+len(findString)]
             xmlAgg = xmlPart1+"\n<queryable>true</queryable>"+xml[val+len(findString):]
-            #print "-----------"
-            #print xmlAgg
+            #log.info "-----------"
+            #log.info xmlAgg
             r = requests.put(serverpath,
                              data=xmlAgg, 
                              headers=headers,
                              auth=auth)
 
-            print "statusCode: updateLayer:",r.status_code
+            log.info("statusCode: updateLayer:"+str(r.status_code))
         else:
-            print "could not get layer, check it exists... "+r.text    
+            log.info("could not get layer, check it exists... "+r.text)    
         pass
 
     def addAttributes(self,param,param_type):
