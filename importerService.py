@@ -18,6 +18,8 @@ import requests
 import ast
 import yaml
 
+from pyon.core import config, bootstrap
+
 __author__ = "abird"
 
 ADDLAYER = "addlayer"
@@ -35,32 +37,31 @@ PARAMS = 'params'
 #load yaml details
 class resource_importer():
     def __init__(self):
+        pyon_config = config.read_standard_configuration()      # Initial pyon.yml + pyon.local.yml
         print "Setting up geoserver importer service..."
         self.startup()
 
     def startup(self):
-        f = open('./extern/ion-definitions/res/config/pyon.yml')
-        # use safe_load instead load
-        dataMap = yaml.safe_load(f)
-        f.close()
-        self.GEO_WS = dataMap['eoi']['geoserver']['geoserver_ooi_workspace']
-        self.SERVER = dataMap['eoi']['geoserver']['server']+"/geoserver/rest"
-        self.U_NAME = dataMap['eoi']['geoserver']['user_name']
-        self.P_WD = dataMap['eoi']['geoserver']['password']
-        self.PORT = dataMap['eoi']['importer_service']['port']
-        self.GEO_STORE = dataMap['eoi']['geoserver']['geoserver_ooi_store']
-        self.SESSION_START_UP_ln1 = dataMap['eoi']['postgres']['session_startup_ln1']
-        self.SESSION_START_UP_ln2 = dataMap['eoi']['postgres']['session_startup_ln2']
+
+        ion_config = config.read_standard_configuration()
+        self.GEO_WS = ion_config['eoi']['geoserver']['geoserver_ooi_workspace']
+        self.SERVER = ion_config['eoi']['geoserver']['server']+"/geoserver/rest"
+        self.U_NAME = ion_config['eoi']['geoserver']['user_name']
+        self.P_WD = ion_config['eoi']['geoserver']['password']
+        self.PORT = ion_config['eoi']['importer_service']['port']
+        self.GEO_STORE = ion_config['eoi']['geoserver']['geoserver_ooi_store']
+        self.SESSION_START_UP_ln1 = ion_config['eoi']['postgres']['session_startup_ln1']
+        self.SESSION_START_UP_ln2 = ion_config['eoi']['postgres']['session_startup_ln2']
         
-        self.POSTGRES_USER = dataMap['eoi']['postgres']['user_name']
-        self.POSTGRES_PASSWORD = dataMap['eoi']['postgres']['password']
-        self.POSTGRES_DB = dataMap['eoi']['postgres']['database']
-        self.POSTGRES_PORT = dataMap['eoi']['postgres']['port']
-        self.POSTGRES_HOST = dataMap['eoi']['postgres']['host']
+        self.POSTGRES_USER = ion_config['eoi']['postgres']['user_name']
+        self.POSTGRES_PASSWORD = ion_config['eoi']['postgres']['password']
+        self.POSTGRES_DB = ion_config['eoi']['postgres']['database']
+        self.POSTGRES_PORT = ion_config['eoi']['postgres']['port']
+        self.POSTGRES_HOST = ion_config['eoi']['postgres']['host']
 
 
-        self.LAYER_PREFIX = dataMap['eoi']['geoserver']['layer_prefix']
-        self.LAYER_SUFFIX = dataMap['eoi']['geoserver']['layer_suffix']
+        self.LAYER_PREFIX = ion_config['eoi']['geoserver']['layer_prefix']
+        self.LAYER_SUFFIX = ion_config['eoi']['geoserver']['layer_suffix']
 
        
 
@@ -126,12 +127,18 @@ class resource_importer():
 
     def getGeoStoreParams(self,):
         #rpsdev = 'Session startup SQL': 'select runCovTest();\nselect 1 from covtest limit 1;',
+        sessionStartup =""
+        if (self.SESSION_START_UP_ln1 is not None):
+            sessionStartup+=self.SESSION_START_UP_ln1 + '\n'
+        if (self.SESSION_START_UP_ln2 is not None):
+            sessionStartup+=self.SESSION_START_UP_ln2
+            
         params = {
             'Connection timeout': '20',
             'Estimated extends': 'true',
             'Expose primary keys': 'false',
             'Loose bbox': 'true', 
-            'Session startup SQL': self.SESSION_START_UP_ln1+'\n'+self.SESSION_START_UP_ln2,
+            'Session startup SQL': sessionStartup,
             'Max open prepared statements': '50',
             'database': str(self.POSTGRES_DB),
             'dbtype': 'postgis',
