@@ -7,9 +7,9 @@ importer service allows the modification (add,remove) of geoserver data layers f
 
 run ```bin/ipython```
 
-enter ```import importerService```
+enter ```import importer_service```
 
-enter ```importerService.ResourceImporter()```
+enter ```importer_service.ResourceImporter()```
 
 the service will tell you which port it is on. you can simply then pass a query to the service eg.
 
